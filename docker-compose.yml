@@ -1,0 +1,19 @@
+version: 3.9
+services:
+  backend:
+    build: ./backend
+    secrets:
+      db_host:
+      db_user:
+      db_password:
+
+  database:
+    image: postgres:14
+
+secrets:
+  db_host:
+    file: ./secrets/db_host.txt
+  db_user:
+    file: ./secrets/db_user.txt
+  db_password:
+    file: ./secrets/db_password.txt
