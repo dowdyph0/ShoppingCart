@@ -1,19 +1,88 @@
-version: 3.9
+version: "3.9"
 services:
+  frontend:
+    build: ./frontend
+    networks:
+      - frontend
+    volumes:
+      - unix_socket_dir:${UNIX_SOCKET_DIR}
+      - static:${STATIC_ROOT}
+      - media:${MEDIA_ROOT}
+      - ./conf/nginx/templates:/etc/nginx/templates:ro
+      - ./conf/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    environment:
+      - UNIX_SOCKET_DIR
+      - STATIC_ROOT
+      - MEDIA_ROOT
+      - NGINX_PORT
+    ports:
+      - 80:8000
+  
   backend:
     build: ./backend
+    command: [ "/backend/entrypoint.sh" ]
     secrets:
-      db_host:
-      db_user:
-      db_password:
+      - db_name
+      - db_user
+      - db_password
+      - django_secret_key
+      - redis_password
+    networks:
+      - backend
+    volumes:
+      - unix_socket_dir:${UNIX_SOCKET_DIR}
+      - static:${STATIC_ROOT}
+      - media:${MEDIA_ROOT}
+    environment:
+      - ALLOWED_HOSTS
+      - STATIC_ROOT
+      - MEDIA_ROOT
+      - PYTHONDONTWRITEBYTECODE
+      - PYTHONUNBUFFERED
+      - LOGLEVEL
+      - UNIX_SOCKET_DIR
 
   database:
     image: postgres:14
+    networks:
+      - backend
+    environment:
+      - POSTGRES_DB_FILE=/run/secrets/db_name
+      - POSTGRES_USER_FILE=/run/secrets/db_user
+      - POSTGRES_PASSWORD_FILE=/run/secrets/db_password
+    secrets:
+      - db_name
+      - db_user
+      - db_password
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  redis:
+    build: ./redis
+    command: [ "/redis/entrypoint.sh" ]
+    secrets:
+      - redis_password
+    networks:
+      - backend
 
 secrets:
-  db_host:
-    file: ./secrets/db_host.txt
+  db_name:
+    file: ./secrets/db_name
   db_user:
-    file: ./secrets/db_user.txt
+    file: ./secrets/db_user
   db_password:
-    file: ./secrets/db_password.txt
+    file: ./secrets/db_password
+  redis_password:
+    file: ./secrets/redis_password
+  django_secret_key:
+    file: ./secrets/django_secret_key
+
+networks:
+  frontend:
+  backend:
+
+volumes:
+  unix_socket_dir:
+  db_data:
+  static:
+  media:

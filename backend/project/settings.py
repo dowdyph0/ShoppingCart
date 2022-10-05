@@ -12,7 +12,7 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 import os
 from pathlib import Path
 
-from .utils import read_text_fromfile
+from .utils import read_secret
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -22,10 +22,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-1cb^^the@60x)pwj-b(lkn0dxn)ypwlg)bxl880qjf5@hs9%%t'
+SECRET_KEY = read_secret("/run/secrets/django_secret_key")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',') 
 
@@ -79,10 +79,10 @@ WSGI_APPLICATION = 'project.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': os.getenv('DB_ENGINE', 'django.db.backends.sqlite3'),
-        'NAME': os.getenv('DB_NAME', BASE_DIR / 'db.sqlite3'),
-        'USER': read_text_fromfile('/run/secrets/db_user', 'default_user'),
-        'PASSWORD': read_text_fromfile('/run/secrets/db_password', 'default_passwd'),
-        'HOST': read_text_fromfile('/run/secrets/db_host', 'database'),
+        'NAME': read_secret('/run/secrets/db_name'),
+        'USER': read_secret('/run/secrets/db_user'),
+        'PASSWORD': read_secret('/run/secrets/db_password'),
+        'HOST': 'database',
     }
 }
 
@@ -122,8 +122,25 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = os.getenv('STATIC_ROOT')
+
+MEDIA_URL = 'media/'
+MEDIA_ROOT = os.getenv('MEDIA_ROOT')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+# Redis cache
+
+REDIS_USER = 'default'
+REDIS_PASSWORD = read_secret('/run/secrets/redis_password')
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': f'redis://{REDIS_USER}:{REDIS_PASSWORD}@redis:6379',
+    }
+}
