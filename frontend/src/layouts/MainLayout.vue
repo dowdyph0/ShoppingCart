@@ -44,6 +44,9 @@
 </template>
 
 <script>
+import ShopService from 'src/api/shop_service'
+const shopService = new ShopService()
+
 import { defineComponent, ref } from "vue";
 import EssentialLink from "components/EssentialLink.vue";
 
@@ -76,7 +79,9 @@ export default defineComponent({
   },
   methods: {
     logout() {
-      console.info("logout")
+      shopService.logout().then((ok)=>{
+        this.$router.push({name: 'login'})
+      })
     }
 
   },
