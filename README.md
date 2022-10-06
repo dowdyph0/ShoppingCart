@@ -95,3 +95,6 @@ vm.overcommit_memory=1
 # Api
 
 > All api description is found in the file **openapi.yaml** for complete browsing use (swagger.io) to browse
+
+# NOTES
+> This is just a demo, dont use it for a project base or production environment.
