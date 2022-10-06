@@ -14,9 +14,10 @@ services:
       - UNIX_SOCKET_DIR
       - STATIC_ROOT
       - MEDIA_ROOT
-      - NGINX_PORT
+      - NGINX_INTERNAL_PORT
+      - NGINX_EXTERNAL_PORT
     ports:
-      - 80:8000
+      - ${NGINX_EXTERNAL_PORT}:${NGINX_INTERNAL_PORT}
   
   backend:
     build: ./backend
@@ -41,6 +42,9 @@ services:
       - PYTHONUNBUFFERED
       - LOGLEVEL
       - UNIX_SOCKET_DIR
+      - DB_ENGINE
+      - DJANGO_DEFAULT_ADMIN_USERNAME
+      - DJANGO_DEFAULT_ADMIN_PASSWORD
 
   database:
     image: postgres:14

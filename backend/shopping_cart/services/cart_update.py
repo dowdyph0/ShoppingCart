@@ -1,27 +1,18 @@
-from django.contrib.auth.models import User
+
 from django.db import transaction
 from django.db.models.query import QuerySet
-from rest_framework.serializers import Serializer
-from shopping_cart.models import Cart, ItemQty
-from shopping_cart.selectors import cart_detail
+from shopping_cart.models import Cart, CartItems
 
 
 @transaction.atomic()
-def cart_update(user: QuerySet[User], serializer: Serializer) -> QuerySet[Cart]:
-    cart = cart_detail(user)
-    item = serializer['item']
-    qty = serializer['qty']
-    quantity = float(qty)
-    queryset = cart.items.filter(item_id=item)
-    count = queryset.count()
-    print(cart, item, quantity, count)
-    if count > 0 and quantity > 0:
-        cart.items.filter(item_id=item).update(qty=qty)
-    if count == 0 and quantity > 0:
-        item_qty = ItemQty(item_id=item, qty=qty)
-        item_qty.save()
-        cart.items.add(item_qty.id)
+def cart_update(cart: QuerySet[Cart], cart_item: int, quantity: float) -> QuerySet[Cart]:
+    CartItems.objects.update_or_create(cart=cart, id=cart_item, defaults={'quantity': quantity}) 
+    
+    # if quantity is below zero we dont update the cart
+    if quantity < 0:
+        return cart
+
+    # if quantity is zero the item is being removed of the cart
     if quantity == 0 or quantity == 0.0:
-        queryset.delete()
-    cart.update_price()
+        CartItems.objects.filter(id=cart_item).delete()
     return cart

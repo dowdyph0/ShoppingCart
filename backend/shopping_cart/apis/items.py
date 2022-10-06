@@ -1,15 +1,12 @@
-from api.pagination import LimitOffsetPagination, get_paginated_response
-from djmoney.models.fields import MoneyField
+from ast import Bytes
 from rest_framework import serializers
 from rest_framework.views import APIView
 from shopping_cart.models import Item
 from shopping_cart.selectors import items_list
+from rest_framework.response import Response
 
 
 class ItemListApi(APIView):
-    class Pagination(LimitOffsetPagination):
-        default_limit = 1
-
     class OutputSerializer(serializers.ModelSerializer):
         image_url = serializers.SerializerMethodField()
 
@@ -29,11 +26,5 @@ class ItemListApi(APIView):
 
     def get(self, request):
         items = items_list()
-
-        return get_paginated_response(
-            pagination_class=self.Pagination,
-            serializer_class=self.OutputSerializer,
-            queryset=items,
-            request=request,
-            view=self
-        )
+        out_serializer = self.OutputSerializer(items, many=True, context={'request': request})
+        return Response(out_serializer.data)

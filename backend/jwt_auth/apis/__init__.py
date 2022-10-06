@@ -1,0 +1,1 @@
+from .jwt_pair import  TokenObtainPairApi

@@ -22,9 +22,14 @@
 
 <script>
 import ShopService from 'src/api/shop_service'
+import projectComposables from "src/api/composables"
 const shopService = new ShopService()
 
 export default {
+  setup() {
+    const {getCartID} = projectComposables()
+    return {getCartID}
+  },
   data() {
     return {
       items: [],
@@ -32,13 +37,16 @@ export default {
   },
   methods: {
     addToCart(item) {
-        console.info("addToCart", item)
+      var cartID = this.getCartID()
+      shopService.addItemToCart(cartID, item.id).then((resp) => {
+
+      })
     },
   },
   mounted() {
     console.log(shopService)
     shopService.getItemList().then((resp) => {
-      this.items = resp.data.results
+      this.items = resp.data
     })
   },
 };

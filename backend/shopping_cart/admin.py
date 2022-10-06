@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from shopping_cart.models import Cart, Item, ItemQty
+from shopping_cart.models import Cart, Item, CartItems
 
 
 class ItemAdmin(admin.ModelAdmin):
@@ -9,9 +9,9 @@ class ItemAdmin(admin.ModelAdmin):
 class CartAdmin(admin.ModelAdmin):
     pass
 
-class ItemQtyAdmin(admin.ModelAdmin):
+class CartItemsAdmin(admin.ModelAdmin):
     pass
 
 admin.site.register(Item, ItemAdmin)
 admin.site.register(Cart, CartAdmin)
-admin.site.register(ItemQty, ItemQtyAdmin)
+admin.site.register(CartItems, CartItemsAdmin)

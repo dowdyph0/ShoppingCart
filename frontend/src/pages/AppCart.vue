@@ -1,7 +1,7 @@
 <template>
   <div>
     <h1>Total: {{ data.price }} {{ data.price_currency }}</h1>
-    <q-table :rows="data.items" :columns="columns" row-key="id">
+    <q-table :rows="data.cart_items" :columns="columns" row-key="id">
       <template v-slot:body="props">
         <q-tr>
           <q-td class="text-right" key="name" :props="props">{{
@@ -10,9 +10,9 @@
           <q-td class="text-right" key="item_price" :props="props"
             >{{ props.row.price }} {{ props.row.price_currency }}</q-td
           >
-          <q-td class="text-right" key="qty" :props="props">
-            {{ parse(props.row.qty) }}
-            <q-popup-edit buttons v-model="props.row.qty" v-slot="scope">
+          <q-td class="text-right" key="quantity" :props="props">
+            {{ parse(props.row.quantity) }}
+            <q-popup-edit buttons v-model="props.row.quantity" v-slot="scope">
               <q-input
                 step="1"
                 min="0"
@@ -21,21 +21,27 @@
                 dense
                 autofocus
                 counter
-                @keyup.enter="updateCart(scope, props.row.item)"
+                @keyup.enter="scope.set"
               />
             </q-popup-edit>
           </q-td>
         </q-tr>
       </template>
     </q-table>
+    <q-btn color="primary" icon="check" label="Checkout Cart" @click="checkoutCart" />
   </div>
 </template>
 
 <script>
 import ShopService from "src/api/shop_service";
+import projectComposables from "src/api/composables"
 const shopService = new ShopService();
 
 export default {
+  setup() {
+    const {getCartID} = projectComposables()
+    return {getCartID}
+  },
   data() {
     return {
       data: {
@@ -62,28 +68,46 @@ export default {
           field: "price",
           sortable: true,
         },
-        { name: "qty", label: "Item quantity", field: "qty", sortable: true },
+        { name: "quantity", label: "Item quantity", field: "quantity", sortable: true },
       ],
     };
   },
   mounted() {
-    shopService.getCart().then((resp) => {
-      this.data = resp.data;
-    });
+    var cartID = this.getCartID()
+    this.loadCartData(cartID)
   },
   methods: {
-    parse(qty) {
-      if (qty) {
-        return parseFloat(qty).toFixed(2).replace(".", ",");
+    parse(quantity) {
+      if (quantity) {
+        return parseFloat(quantity).toFixed(2).replace(".", ",");
       }
-      return qty;
+      return quantity;
     },
-    updateCart(scope, item) {
-      var value = parseFloat(scope.value).toFixed(2);
-      //item.qty = value
-      scope.value = value;
-      scope.set();
-      shopService.updateCart(item.id, value).then((resp) => {
+    
+    loadCartData(cartID) {
+      shopService.getCart(cartID).then((resp) => {
+        this.data = resp.data;
+      });
+    },
+    
+    checkoutCart() {
+      var cart_items = []
+      for (var cart_item of this.data.cart_items) {
+        cart_items.push({
+          item_id: cart_item.item.id,
+          quantity: cart_item.quantity,
+        })
+      }
+
+      shopService.checkoutCart('US', cart_items).then((resp) => {
+        this.loadCartData(resp.data.id)
+      })
+    },
+
+    updateCart(newVal, cart_item) {
+      var cartID = this.getCartID()
+      var value = parseFloat(newVal).toFixed(2);
+      shopService.updateCart(cartID, cart_item.id, value).then((resp) => {
         this.data = resp.data;
       });
     },

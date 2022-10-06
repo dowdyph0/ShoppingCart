@@ -4,6 +4,7 @@ import { Loading } from "quasar";
 import axios from "axios";
 import { LocalStorage } from "quasar";
 import projectComposables from "src/api/composables"
+import ShopService from "src/api/shop_service";
 
 // Be careful when using SSR for cross-request state pollution
 // due to creating a Singleton instance here;
@@ -14,16 +15,17 @@ import projectComposables from "src/api/composables"
 let protocol = document.location.protocol
 let host = document.location.hostname
 let port = document.location.port
-port = 8000
+// port = 8000
 
-let baseUrl = `${protocol}//${host}:${port}/api/` 
+let baseUrl = `${protocol}//${host}:${port}/api/`
 
 const api = axios.create({ baseURL: baseUrl });
+const shopService = new ShopService()
 
 export default boot(({ app, router, store }) => {
   const { access, refresh } = projectComposables()
   api.interceptors.request.use(
-    async (config) => { 
+    async (config) => {
       if (access.value) {
         config.headers.Authorization = `Bearer ${access.value}`;
       }
@@ -34,19 +36,18 @@ export default boot(({ app, router, store }) => {
     }
   );
 
-  // los metodos tienen que ser async para poder sincronizar la peticion de tokens
   api.interceptors.response.use(
     async function (resp) {
       // guardamos request original
       const originalRequest = resp.config;
 
-      // si hay errores y se intento previamente refrescar el token y el token no es valido -> logout
+      // if errors and refresh failed and token not valid -> logout
       if (
-        resp.data.errors &&
-        resp.config.url == "/token/refresh/" &&
+        resp.config.url == "/auth/token/refresh/" &&
         resp.data.code == "token_not_valid"
       ) {
-        logout().then(() => {
+
+        shopService.logout().then(() => {
           Notify.create({
             message: 'Session expired',
             type: "info",
@@ -55,9 +56,9 @@ export default boot(({ app, router, store }) => {
         })
       }
 
-      // si simplemente hay errores y el token no es valido -> refrescar token
-      else if (resp.data.errors && resp.data.code == "token_not_valid") {
-        refreshToken().then((ok) => {
+      // with errors and token_not_valid we refresh it
+      else if (resp.data.code == "token_not_valid") {
+        shopService.refreshToken().then((ok) => {
           if (ok) {
             originalRequest.headers.Authorization = `Bearer ${access.value}`;
             return axios(originalRequest);
@@ -65,7 +66,7 @@ export default boot(({ app, router, store }) => {
         })
       }
 
-      // en otros casos en los que haya errores los mostramos
+      // if normal response comes with errors
       else if (resp.data.errors && resp.status == 200) {
         Loading.hide();
         Notify.create({
@@ -85,7 +86,7 @@ export default boot(({ app, router, store }) => {
         });
       }
 
-      // en cualquier otro caso retornamos la respuesta normal
+      // in another case we use normal response
       else {
         Loading.hide();
         return resp;
@@ -93,8 +94,30 @@ export default boot(({ app, router, store }) => {
     },
 
     async function (error) {
+
+      var originalRequest = error.response.config
+
+      if (originalRequest.url == "/auth/token/refresh/" && error.response.data.code == "token_not_valid") {
+        shopService.logout().then(() => {
+          Notify.create({
+            message: 'Session expired',
+            type: "info",
+          });
+          router.push({ name: "login" });
+        })
+      }
+
+      if (error.response.data.code == "token_not_valid") {
+        shopService.refreshToken().then((ok) => {
+          if (ok) {
+            originalRequest.headers.Authorization = `Bearer ${access.value}`;
+            return axios(originalRequest);
+          }
+        })
+      }
+
       Loading.hide();
-      // si hay error lo mostramos
+      // if there is any error we show it 
       var html_errors = "Error during request.";
       if (error.response && error.response.data && error.response.data.errors) {
         html_errors = error.response.data.errors.join("<br>");
@@ -115,6 +138,7 @@ export default boot(({ app, router, store }) => {
           },
         ],
       });
+      router.push({ name: "login" });
       return Promise.reject(error);
     }
   );

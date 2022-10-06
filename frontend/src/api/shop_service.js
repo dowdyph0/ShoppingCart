@@ -6,7 +6,7 @@ export default class ShopService {
         const { access, refresh } = projectComposables()
 
         return new Promise((resolve, reject) => {
-            api.post('/token/refresh/', { refresh: refresh.value }).then((resp) => {
+            api.post('/auth/token/refresh/', { refresh: refresh.value }).then((resp) => {
                 if (resp.data) {
                     access.value = resp.data.access
                     resolve(true)
@@ -37,13 +37,21 @@ export default class ShopService {
         return api.get('/shop/items/')
     }
 
-    async getCart() {
-        return api.get('/shop/cart/')
+    async getCart(cartID) {
+        return api.get(`/shop/cart/${cartID}/`)
     }
 
-    async updateCart(item_id, quantity) {
-        console.log('updateCart', item_id, quantity)
-        return api.post('/shop/cart/update/', {item: item_id, qty: quantity})
+    async updateCart(cartID, cart_item, quantity) {
+        return api.post(`/shop/cart/${cartID}/update/`, {cart_item: cart_item, qty: quantity})
+    }
+
+    async addItemToCart(cartID, itemID) {
+        return api.post(`/shop/cart/${cartID}/add/`, {item: itemID})
+    }
+
+
+    async checkoutCart(country_code, cart_items) {
+        return api.post(`/shop/cart/checkout/`, {country_code: country_code, cart_items: cart_items})
     }
 
     async logout() {
