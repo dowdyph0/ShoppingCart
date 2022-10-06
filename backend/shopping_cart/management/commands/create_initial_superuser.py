@@ -5,6 +5,7 @@ import os
 class Command(BaseCommand):
     def handle(self, *args, **options):
         if User.objects.count() == 0:
+            print("Creating initial user...")
             username = os.getenv("DJANGO_DEFAULT_ADMIN_USERNAME", "admin")
             password = os.getenv("DJANGO_DEFAULT_ADMIN_PASSWORD", "admin1234")
             admin = User.objects.create_superuser(username=username, password=password)
